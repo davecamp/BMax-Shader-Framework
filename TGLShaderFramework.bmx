@@ -110,7 +110,6 @@ Type TGLShaderProgram Extends TShaderProgram
 		For Local i:Int = 0 Until uniformCount
 			glGetActiveUniform(_Id, i, SizeOf(cname), Varptr length, Varptr count, Varptr tipe, cname)
 			Local name:String = String.FromCString(cname)
-			Print name
 			CreateUniform(i, name, count, tipe)
 		Next
 	EndMethod
