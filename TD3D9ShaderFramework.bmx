@@ -263,7 +263,7 @@ Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 	Method DebugData:Int(SizeBytes:Int)
 		If(SizeBytes = _SizeBytes) Return False
 		
-		Local debug:String = "ERROR! TGLShaderConstant: '" + _Name + "' requires " + _SizeBytes
+		Local debug:String = "ERROR! TD3D9ShaderUniform: '" + _Name + "' requires " + _SizeBytes
 		debug :+ " bytes to be set but " + SizeBytes + " are being presented."
 		DebugLog(debug)
 		Return True
