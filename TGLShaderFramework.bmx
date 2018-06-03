@@ -385,13 +385,12 @@ EndType
 
 Type TGLShaderSampler Extends TShaderSampler
 	Field _Name:String
-	Field _Data:Byte Ptr
+	Field _Data:Int
 	Field _Location:Int
 	Field _RequiresUpload:Int
 	Field _IsRendering:Int
 
 	Method Create:TGLShaderSampler(Owner:TGLShaderProgram, Location:Int, Name:String, Tipe:Int)
-		_Data = MemAlloc(4)
 		_Name = Name
 		_Location = Location
 		Return Self
@@ -401,14 +400,14 @@ Type TGLShaderSampler Extends TShaderSampler
 		If _IsRendering
 			glUniform1i(_Location, Index)
 		Else
-			Int Ptr(_Data)[0] = Index
+			_Data = Index
 			_RequiresUpload = True
 		EndIf
 	EndMethod
 	
 	Method Set()
 		If _RequiresUpload
-			glUniform1i(_Location, Int Ptr(_Data)[0]); _RequiresUpload = False
+			glUniform1i(_Location, _Data); _RequiresUpload = False
 		EndIf
 		_IsRendering = True
 	EndMethod
