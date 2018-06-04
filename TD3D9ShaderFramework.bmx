@@ -292,6 +292,7 @@ Type TD3D9ShaderSampler Extends TShaderSampler
 	Field _Name:String
 	Field _Register:Int
 	Field _Index:Int
+	Field _IsRendering:Int
 
 	Method Create:TD3D9ShaderSampler(Name:String, Register:Int)
 		_Name = name
@@ -315,8 +316,8 @@ Type TD3D9ShaderSampler Extends TShaderSampler
 		'_IsRendering = False
 	EndMethod
 
-	Method Update()
-		Device.SetSamplerState(_Register, 
+	Method Upload()
+		'Device.SetSamplerState(_Register, 
 	EndMethod
 EndType
 
@@ -405,16 +406,48 @@ Type D3DXCONSTANT_DESC
 EndType
 
 ?BmxNG
+Extern "Win32"
+Interface ID3DBlob Extends IUnknown_
+	Method GetBufferPointer:Byte Ptr()
+	Method GetBufferSize()
+EndInterface
+
+Interface ID3DXConstantTable Extends IUnknown_
+	Method GetBufferPointer:Byte Ptr()
+	Method GetBufferSize:Int()
+
+	Method GetDesc:Int(pDesc:Byte Ptr)
+	Method GetConstantDesc:Int(hConstant:Byte Ptr, pDesc:Byte Ptr, pCount:Int Ptr)
+	Method GetSamplerIndex:Int(hConstant:Byte Ptr)
+	
+	Method GetConstant:Byte Ptr(hConstant:Byte Ptr, Index:Int)
+	Method GetConstantByName:Byte Ptr(hConstant:Byte Ptr, pName:Short Ptr)
+	Method GetConstantElement:Byte Ptr(hConstant:Byte Ptr, Index:Int)
+	
+	Method SetDefaults:Int(pDevice:IDirect3DDevice9)
+	Method SetValue:Int(pDevice:IDirect3DDevice9, hConstant:Byte Ptr, pData:Byte Ptr, Bytes:Int)
+	Method SetBool:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, b:Int)
+	Method SetBoolArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pb:Byte Ptr, Count:Int)
+	Method SetInt:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, n:Int)
+	Method SetIntArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pn:Int Ptr, Count:Int)
+	Method SetFloat:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, f:Float)
+	Method SetFloatArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pf:Float Ptr, Count:Int)
+	Method SetVector:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pVector:Byte Ptr)
+	Method SetVectorArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pVector:Byte Ptr, Count:Int)
+	Method SetMatrix:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pMatrix:Byte Ptr)
+	Method SetMatrixArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pMatrix:Byte Ptr, Count:Int)
+	Method SetMatrixPointerArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, ppMatrix:Byte Ptr, Count:Int)
+	Method SetMatrixTranspose:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pMatrix:Byte Ptr)
+	Method SetMatrixTransposeArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, pMatrix:Byte Ptr, Count:Int)
+	Method SetMatrixTransposePointerArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, ppMatrix:Byte Ptr, Count:Int)
+EndInterface
+EndExtern
 Global D3DCompilerDll:Byte Ptr = LoadLibraryA("d3dcompiler_47.dll")
 If Not D3DCompilerDll D3DCompilerDll = LoadLibraryA("d3dcompiler_43.dll")
 
-Extern "Win32"
-Type ID3DBlob Extends IUnknown_
-	Method GetBufferPointer:Byte Ptr()
-	Method GetBufferSize()
-EndType
-EndExtern
+Global D3DX9Dll:Byte Ptr = LoadLibraryA("d3dx9_43.dll")
 ?
+
 ?Not BmxNG
 Extern "Win32"
 Type ID3DBlob Extends IUnknown

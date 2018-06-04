@@ -2,9 +2,10 @@
 Strict
 
 Import srs.shaderframework
-
-'SetGraphicsDriver GLMax2DDriver()
+SetGraphicsDriver GLMax2DDriver()
+?Win32
 SetGraphicsDriver D3D9Max2DDriver()
+?
 Local g:TGraphics = Graphics(800,600)
 Local max2dg:TMax2DGraphics = TMax2DGraphics(g)
 
