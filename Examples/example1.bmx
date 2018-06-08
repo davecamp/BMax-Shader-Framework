@@ -4,7 +4,7 @@ Strict
 Import srs.shaderframework
 SetGraphicsDriver GLMax2DDriver()
 ?Win32
-SetGraphicsDriver D3D9Max2DDriver()
+'SetGraphicsDriver D3D9Max2DDriver()
 ?
 Local g:TGraphics = Graphics(800,600)
 Local max2dg:TMax2DGraphics = TMax2DGraphics(g)
@@ -29,20 +29,6 @@ Local sf:TShaderFramework = CreateShaderFramework(g)
 Local vertexshader:TVertexShader = sf.CreateVertexShader(vsource)
 Local pixelshader:TPixelShader = sf.CreatePixelShader(psource)
 Local myShader:TShaderProgram = sf.CreateShaderProgram(vertexshader, pixelshader)
-
-?win32
-' d3d9?
-Local d3d9g:TD3D9Graphics = TD3D9Graphics(max2dg._graphics)
-If d3d9g
-	' set the projection matrix that max2d is currently using
-	Local projmatrix:TShaderUniform = myShader.getShaderUniform("ProjMatrix")
-
-	Local device:IDirect3DDevice9 = d3d9g.getdirect3ddevice()
-	Local proj:Float[16]
-	device.GetTransform(D3DTS_PROJECTION, proj)
-	projmatrix.SetMatrix4x4(proj, False)
-EndIf
-?
 
 Local rt_size:TShaderUniform = myShader.getShaderUniform("rt_size")
 Local radius:TShaderUniform = myShader.getShaderUniform("radius")
@@ -88,10 +74,14 @@ Wend
 Function GLSLVertexShaderSource:String()
 	Local source:String
 	source :+ "#version 120~n"
+	
+	source :+ "varying vec4 var_color;~n"
+	source :+ "varying vec2 var_uv;~n"
+	
 	source :+ "void main() {~n"
 	source :+ "   gl_Position = ftransform();~n"
-	source :+ "   gl_TexCoord[0] = gl_MultiTexCoord0;~n"
-	source :+ "   gl_FrontColor = gl_Color;~n"
+	source :+ "   var_color = gl_Color;~n"
+	source :+ "   var_uv = gl_MultiTexCoord0.st;~n"
 	source :+ "}~n"
 	Return source
 EndFunction
@@ -107,9 +97,11 @@ Function GLSLPixelShaderSource:String()
 	source :+ "uniform float angle;~n"
 	source :+ "uniform sampler2D tex;~n"
 	
+	source :+ "varying vec4 var_color;~n"
+	source :+ "varying vec2 var_uv;~n"
+	
 	source :+ "void main() {~n"
-	source :+ "   vec2 uv = gl_TexCoord[0].st;~n"
-	source :+ "   vec2 tc = uv * rt_size;~n"
+	source :+ "   vec2 tc = var_uv * rt_size;~n"
 	source :+ "   tc -= centre;~n"
 	source :+ "   float dist = length(tc);~n"
 	source :+ "   if(dist < radius) {~n"
@@ -119,7 +111,7 @@ Function GLSLPixelShaderSource:String()
 	source :+ "      tc = vec2(dot(tc, vec2(c, -s)), dot(tc, vec2(s, c)));~n"
 	source :+ "   }~n"
 	source :+ "   tc += centre;~n"
-	source :+ "   vec3 color = texture2D(tex, tc / rt_size).rgb;~n"
+	source :+ "   vec3 color = texture2D(tex, tc / rt_size).rgb * var_color.rgb;~n"
 	
 	source :+ "   gl_FragColor = vec4(color, 1.0);~n"
 	source :+ "}~n"
@@ -142,11 +134,11 @@ Function HLSLVertexShaderSource:String()
 	source :+ "    float2 uv : TEXCOORD0;~n"
 	source :+ "};~n"
 
-	source :+ "float4x4 ProjMatrix : register(c0);~n"
+	source :+ "float4x4 BMaxProjectionMatrix;~n" ' uniforms/constants beginning with BMax* will be automatically
 		
 	source :+ "VS_OUT VSMain(VS_IN vsIn) {~n"
-	source :+ "   VS_OUT vsOut;~n"		
-	source :+ "   vsOut.pos = mul(ProjMatrix, float4(vsIn.pos, 1.0f));~n"
+	source :+ "   VS_OUT vsOut;~n"
+	source :+ "   vsOut.pos = mul(BMaxProjectionMatrix, float4(vsIn.pos, 1.0f));~n"
 	source :+ "   vsOut.col = vsIn.col;~n"
 	source :+ "   vsOut.uv = vsIn.uv;~n"
 	source :+ "   return vsOut;~n"

@@ -1,5 +1,5 @@
 
-Strict
+SuperStrict
 
 Type TVertexShader Abstract
 EndType
@@ -10,6 +10,8 @@ EndType
 Type TShaderProgram Abstract
 	Method GetShaderUniform:TShaderUniform(Name:String) Abstract
 	Method GetShaderSampler:TShaderSampler(Name:String) Abstract
+	
+	Method ResetMax2DDefaults() Abstract
 EndType
 
 Type TShaderUniform Abstract

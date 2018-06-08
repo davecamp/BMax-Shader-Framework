@@ -1,5 +1,5 @@
 
-Strict
+SuperStrict
 
 Import BRL.GLMax2D
 Import BRL.Retro
@@ -9,7 +9,7 @@ Import PUB.Glew
 Import "TShaderFramework.bmx"
 
 Private
-Global GlewIsInit
+Global GlewIsInit:Int
 
 Function GLEnumGlslTypeToString:String(Tipe:Int)
 	Select Tipe
@@ -34,7 +34,9 @@ Type TGLShaderProgram Extends TShaderProgram
 	Field _Id:Int
 	Field _VShader:TGLVertexShader
 	Field _PShader:TGLPixelShader
-	Field _Uniforms:TMap = New TMap
+	Field _UniformsUser:TMap = New TMap
+	Field _UniformsAuto:TMap = New TMap
+	Field _Max2DDefaultsNeedUpdating:Int = True
 	
 	Method Link:Int(VertexShader:TGLVertexShader, PixelShader:TGLPixelShader)
 		_Id = glCreateProgram()
@@ -67,9 +69,34 @@ Type TGLShaderProgram Extends TShaderProgram
 	
 	Method Set()
 		glUseProgram(_Id)
-		For Local node:TNode = EachIn _Uniforms
+		SetAutoUniforms()
+		SetUserUniforms()
+	EndMethod
+	
+	Method ResetMax2DDefaults()
+		_Max2DDefaultsNeedUpdating = True
+	EndMethod
+		
+	Method SetAutoUniforms()
+		If Not _Max2DDefaultsNeedUpdating Return
+		_Max2DDefaultsNeedUpdating  = False
+
+		For Local node:TNode = EachIn _UniformsAuto
 			Local constant:TGLShaderUniform = TGLShaderUniform(node._Value)
 			If constant
+				' add more of these as required...
+				Select constant._Name
+				Case "BMaxModelViewMatrix"
+					Local modelview:Float[16]
+					glGetFloatv(GL_MODELVIEW_MATRIX, modelview)
+					constant.SetMatrix4x4(modelview, False)
+					
+				Case "BMaxProjectionMatrix"
+					Local projection:Float[16]
+					glGetFloatv(GL_PROJECTION_MATRIX, projection)
+					constant.SetMatrix4x4(projection, False)
+				EndSelect
+				
 				constant.Set()
 				Continue
 			EndIf
@@ -78,8 +105,21 @@ Type TGLShaderProgram Extends TShaderProgram
 		Next		
 	EndMethod
 	
+	Method SetUserUniforms()
+		For Local node:TNode = EachIn _UniformsUser
+			Local constant:TGLShaderUniform = TGLShaderUniform(node._Value)
+			If constant				
+				constant.Set()
+				Continue
+			EndIf
+			Local sampler:TGLShaderSampler = TGLShaderSampler(node._Value)
+			If sampler sampler.Set()
+		Next		
+	EndMethod
+
+	
 	Method Unset()
-		For Local node:TNode = EachIn _Uniforms
+		For Local node:TNode = EachIn _UniformsUser
 			Local constant:TGLShaderUniform = TGLShaderUniform(node._Value)
 			If constant
 				constant.Unset()
@@ -88,20 +128,32 @@ Type TGLShaderProgram Extends TShaderProgram
 			Local sampler:TGLShaderSampler = TGLShaderSampler(node._Value)
 			If sampler sampler.Unset()
 		Next
+		
+		For Local node:TNode = EachIn _UniformsAuto
+			Local constant:TGLShaderUniform = TGLShaderUniform(node._Value)
+			If constant
+				constant.Unset()
+				Continue
+			EndIf
+			Local sampler:TGLShaderSampler = TGLShaderSampler(node._Value)
+			If sampler sampler.Unset()
+		Next
+
 	EndMethod
 	
 	Method GetShaderUniform:TShaderUniform(Name:String)
-		Local Uniform:Object = _Uniforms.ValueForKey(Name)
+		Local Uniform:Object = _UniformsUser.ValueForKey(Name)
 		Return TShaderUniform(Uniform)
 	EndMethod
 	
 	Method GetShaderSampler:TShaderSampler(Name:String)
-		Local Sampler:Object = _Uniforms.ValueForKey(Name)
+		Local Sampler:Object = _UniformsUser.ValueForKey(Name)
 		Return TShaderSampler(Sampler)
 	EndMethod
 	
 	Method Reflect()
-		_Uniforms.Clear()
+		_UniformsAuto.Clear()
+		_UniformsUser.Clear()
 		Local uniformCount:Int
 		glGetProgramiv(_Id, GL_ACTIVE_UNIFORMS, Varptr uniformCount)
 		Local cname:Byte[64], length:Int
@@ -110,20 +162,25 @@ Type TGLShaderProgram Extends TShaderProgram
 		For Local i:Int = 0 Until uniformCount
 			glGetActiveUniform(_Id, i, SizeOf(cname), Varptr length, Varptr count, Varptr tipe, cname)
 			Local name:String = String.FromCString(cname)
-			CreateUniform(i, name, count, tipe)
+
+			If name = "BMaxModelViewMatrix" Or name = "BMaxProjectionMatrix"
+				CreateUniform(i, name, count, tipe, _UniformsAuto)
+			Else
+				CreateUniform(i, name, count, tipe, _UniformsUser)
+			EndIf
 		Next
 	EndMethod
 	
-	Method CreateUniform(location:Int, name:String, count:Int, tipe)
+	Method CreateUniform(location:Int, name:String, count:Int, tipe:Int, map:TMap)
 		Local uniform:TGLShaderUniform
 		
 		Select tipe
-		Case GL_FLOAT, GL_INT _Uniforms.Insert(name, New TGLShaderUniform.Create(location, name, count * 4, tipe))
-		Case GL_FLOAT_VEC2, GL_INT_VEC2 _Uniforms.Insert(name, New TGLShaderUniform.Create(location, name, count * 8, tipe))
-		Case GL_FLOAT_VEC3, GL_INT_VEC3 _Uniforms.Insert(name, New TGLShaderUniform.Create(location, name, count * 12, tipe))
-		Case GL_FLOAT_VEC4, GL_INT_VEC4 _Uniforms.Insert(name, New TGLShaderUniform.Create(location, name, count * 16, tipe))
-		Case GL_FLOAT_MAT4 _Uniforms.Insert(name, New TGLShaderUniform.Create(location, name, count * 64, tipe))
-		Case GL_SAMPLER_2D _Uniforms.Insert(name, New TGLShaderSampler.Create(Self, location, name, tipe))
+		Case GL_FLOAT, GL_INT map.Insert(name, New TGLShaderUniform.Create(location, name, count * 4, tipe))
+		Case GL_FLOAT_VEC2, GL_INT_VEC2 map.Insert(name, New TGLShaderUniform.Create(location, name, count * 8, tipe))
+		Case GL_FLOAT_VEC3, GL_INT_VEC3 map.Insert(name, New TGLShaderUniform.Create(location, name, count * 12, tipe))
+		Case GL_FLOAT_VEC4, GL_INT_VEC4 map.Insert(name, New TGLShaderUniform.Create(location, name, count * 16, tipe))
+		Case GL_FLOAT_MAT4 map.Insert(name, New TGLShaderUniform.Create(location, name, count * 64, tipe))
+		Case GL_SAMPLER_2D map.Insert(name, New TGLShaderSampler.Create(Self, location, name, tipe))
 		
 		Default DebugLog("Unsupported shader primitive type for Max2D")
 		EndSelect
@@ -419,6 +476,7 @@ EndType
 
 Type TGLShaderFramework Extends TShaderFramework
 	Field CurrentProgram:TGLShaderProgram
+	Field ProjectionMatrix:Float[16]
 	
 	Method New()
 		If Not GlewIsInit

@@ -1,5 +1,5 @@
 
-Strict
+SuperStrict
 Import "-lOle32"
 
 Import BRL.D3D9Max2D
@@ -14,11 +14,14 @@ Public
 Type TD3D9ShaderReflector
 	Const D3DXPT_BOOL:Int = 1, D3DXPT_INT:Int = 2, D3DXPT_FLOAT:Int = 3
 	Const D3DXPT_TEXTURE2D:Int = 7,  D3DXPT_SAMPLER2D:Int = 12
+	
+	Field _UniformsAuto:TMap = New TMap
+	Field _UniformsUser:TMap = New TMap
 
-	Method Reflect:TMap(pBlob:ID3DBlob, ShaderType:Int)
+	Method Reflect(pBlob:ID3DBlob, ShaderType:Int)
 		Local pByteCode:Byte Ptr = pBlob.GetBufferPointer()
 		Local pTable:ID3DXConstantTable
-		
+
 		D3DXGetShaderConstantTable(pByteCode, pTable)
 		If Not pTable Return
 		pTable.SetDefaults(Device)
@@ -26,7 +29,6 @@ Type TD3D9ShaderReflector
 		Local Table:D3DXCONSTANTTABLE_DESC = New D3DXCONSTANTTABLE_DESC
 		pTable.GetDesc(Table)
 
-		Local Uniforms:TMap = New TMap
 		For Local i:Int = 0 Until Table.ConstantCount
 			Local bp:Byte Ptr = pTable.GetConstant(Null, i)
 			Local desc:D3DXCONSTANT_DESC = New D3DXCONSTANT_DESC
@@ -36,32 +38,36 @@ Type TD3D9ShaderReflector
 			
 			Select desc.Tipe
 			Case D3DXPT_BOOL, D3DXPT_INT, D3DXPT_FLOAT
-				Uniforms.Insert(name, New TD3D9ShaderUniform.Create(name, desc.RegisterIndex, desc.RegisterCount, desc.Bytes, ShaderType))
+				If name = "BMaxProjectionMatrix"
+					_UniformsAuto.Insert(name, New TD3D9ShaderUniform.Create(name, desc.RegisterIndex, desc.RegisterCount, desc.Bytes, ShaderType))
+				Else
+					_UniformsUser.Insert(name, New TD3D9ShaderUniform.Create(name, desc.RegisterIndex, desc.RegisterCount, desc.Bytes, ShaderType))
+				EndIf
 
-			Case  D3DXPT_SAMPLER2D
-				Uniforms.Insert(name, New TD3D9ShaderSampler.Create(name, desc.RegisterIndex))
+			Case D3DXPT_SAMPLER2D
+				_UniformsUser.Insert(name, New TD3D9ShaderSampler.Create(name, desc.RegisterIndex))
 			
 			Default DebugLog("Unsupported D3D9 shader variable type")
 			EndSelect
 		Next
 		
 		pTable.Release_()
-		Return Uniforms
 	EndMethod
 EndType
 
 Type TD3D9ShaderProgram Extends TShaderProgram
 	Field _VShader:IDirect3DVertexShader9
 	Field _PShader:IDirect3DPixelShader9
-	Field _Uniforms:TMap = New TMap
+	Field _UniformsAuto:TMap = New TMap
+	Field _UniformsUser:TMap = New TMap
 	
 	Method GetShaderUniform:TShaderUniform(Name:String)
-		Local Uniform:Object = _Uniforms.ValueForKey(Name)
+		Local Uniform:Object = _UniformsUser.ValueForKey(Name)
 		Return TShaderUniform(Uniform)
 	EndMethod
 
 	Method GetShaderSampler:TShaderSampler(Name:String)
-		Local Sampler:Object = _Uniforms.ValueForKey(Name)
+		Local Sampler:Object = _UniformsUser.ValueForKey(Name)
 		Return TShaderSampler(Sampler)
 	EndMethod
 	
@@ -69,7 +75,37 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 		Device.SetVertexShader(_VShader)
 		Device.SetPixelShader(_PShader)
 
-		For Local node:TNode = EachIn _Uniforms
+		SetAutoUniforms()
+		SetUserUniforms()
+	EndMethod
+
+	Method SetAutoUniforms()
+		For Local node:TNode = EachIn _UniformsAuto
+			Local constant:TD3D9ShaderUniform = TD3d9ShaderUniform(node._Value)
+			If constant
+				' add more of these as required...
+				Select constant._Name
+				'Case "BMaxModelViewMatrix"
+				'	Local modelview:Float[16]
+				'	glGetFloatv(GL_MODELVIEW_MATRIX, modelview)
+				'	constant.SetMatrix4x4(modelview, False)
+					
+				Case "BMaxProjectionMatrix"
+					Local projection:Float[16]
+					Device.GetTransform(D3DTS_PROJECTION, projection)
+					constant.SetMatrix4x4(projection, False)
+				EndSelect
+				
+				constant.Set()
+				Continue
+			EndIf
+			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._Value)
+			If sampler sampler.Set()
+		Next		
+	EndMethod
+
+	Method SetUserUniforms()
+		For Local node:TNode = EachIn _UniformsUser
 			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
 				constant.Set()
@@ -81,7 +117,7 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 	EndMethod
 	
 	Method Unset()
-		For Local node:TNode = EachIn _Uniforms
+		For Local node:TNode = EachIn _UniformsUser
 			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
 				constant.Unset()
@@ -95,31 +131,59 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 	Method Reflect(VertexShader:TD3D9VertexShader, PixelShader:TD3D9PixelShader)
 		_VShader = VertexShader._VShader
 		_PShader = PixelShader._PShader
+		
+		_UniformsAuto.Clear()
+		_UniformsUser.Clear()
 
-		For Local node:TNode = EachIn VertexShader._Uniforms
+		' vertex shader uniforms - autos and users
+		For Local node:TNode = EachIn VertexShader._UniformsAuto
 			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
-				_Uniforms.Insert(constant._Name, constant)
+				_UniformsAuto.Insert(constant._Name, constant)
 				Continue
 			EndIf
 			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._value)
-			If sampler _Uniforms.Insert(sampler._Name, sampler)
+			If sampler _UniformsAuto.Insert(sampler._Name, sampler)
 		Next
-		For Local node:TNode = EachIn PixelShader._Uniforms
+		For Local node:TNode = EachIn VertexShader._UniformsUser
 			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
-				_Uniforms.Insert(constant._Name, constant)
+				_UniformsUser.Insert(constant._Name, constant)
 				Continue
 			EndIf
 			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._value)
-			If sampler _Uniforms.Insert(sampler._Name, sampler)
+			If sampler _UniformsUser.Insert(sampler._Name, sampler)
 		Next
+
+		' pixel shader uniforms - autos and users
+		For Local node:TNode = EachIn PixelShader._UniformsAuto
+			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
+			If constant
+				_UniformsAuto.Insert(constant._Name, constant)
+				Continue
+			EndIf
+			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._value)
+			If sampler _UniformsAuto.Insert(sampler._Name, sampler)
+		Next
+		For Local node:TNode = EachIn PixelShader._UniformsUser
+			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
+			If constant
+				_UniformsUser.Insert(constant._Name, constant)
+				Continue
+			EndIf
+			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._value)
+			If sampler _UniformsUser.Insert(sampler._Name, sampler)
+		Next
+	EndMethod
+	
+	Method ResetMax2DDefaults()
 	EndMethod
 EndType
 
 Type TD3D9VertexShader Extends TVertexShader
 	Field _VShader:IDirect3DVertexShader9
-	Field _Uniforms:TMap
+	Field _UniformsAuto:TMap
+	Field _UniformsUser:TMap
 
 	Method Compile:Int(source:String)
 		Local pByteCode:ID3DBlob = CompileShader(Device, source, "VSMain", "vs_3_0")
@@ -134,13 +198,17 @@ Type TD3D9VertexShader Extends TVertexShader
 	
 	Method Reflect(pBlob:ID3DBlob)
 		Local reflector:TD3D9ShaderReflector = New TD3D9ShaderReflector
-		_Uniforms = reflector.Reflect(pBlob, 0)
+		reflector.Reflect(pBlob, 0)
+		
+		_UniformsAuto = reflector._UniformsAuto
+		_UniformsUser = reflector._UniformsUser
 	EndMethod
 EndType
 
 Type TD3D9PixelShader Extends TPixelShader
 	Field _PShader:IDirect3DPixelShader9
-	Field _Uniforms:TMap
+	Field _UniformsAuto:TMap
+	Field _UniformsUser:TMap
 	
 	Method Compile:Int(source:String)
 		Local pByteCode:ID3DBlob = CompileShader(Device, source, "PSMain", "ps_3_0")
@@ -155,7 +223,10 @@ Type TD3D9PixelShader Extends TPixelShader
 	
 	Method Reflect(pBlob:ID3DBlob)
 		Local reflector:TD3D9ShaderReflector = New TD3D9ShaderReflector
-		_Uniforms = reflector.Reflect(pBlob, 1)
+		reflector.Reflect(pBlob, 1)
+		
+		_UniformsAuto = reflector._UniformsAuto
+		_UniformsUser = reflector._UniformsUser
 	EndMethod
 EndType
 
@@ -491,11 +562,11 @@ If Not D3DCompilerDll D3DCompilerDll = LoadLibraryA("d3dcompiler_43.dll")
 Global D3DX9Dll:Int = LoadLibraryA("d3dx9_43.dll")
 ?
 
-If Not D3DX9Dll Return
-If Not D3DCompilerDll Return
+If Not D3DX9Dll Return 0
+If Not D3DCompilerDll Return 0
 
-Global D3DCreateBlob:Int(Size,ppBlob:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCreateBlob")
-Global D3DCompile:Int(pSrcData:Byte Ptr,SrcDataSize,pSourceName:Byte Ptr,pDefines:Byte Ptr,pInclude:Byte Ptr,pEntryPoint:Byte Ptr,pTarget:Byte Ptr,Flags1,Flags2,ppCode:ID3DBlob Var,ppErrorMsgs:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCompile")
+Global D3DCreateBlob:Int(Size:Int ,ppBlob:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCreateBlob")
+Global D3DCompile:Int(pSrcData:Byte Ptr, SrcDataSize:Int, pSourceName:Byte Ptr,pDefines:Byte Ptr,pInclude:Byte Ptr,pEntryPoint:Byte Ptr,pTarget:Byte Ptr,Flags1:Int,Flags2:Int,ppCode:ID3DBlob Var,ppErrorMsgs:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCompile")
 Global D3DXGetShaderConstantTable:Int(pFunction:Byte Ptr, ppConstantTable:ID3DXConstantTable Var)"Win32" = GetProcAddress(D3DX9Dll, "D3DXGetShaderConstantTable")
 
 Function CompileShader:ID3DBlob(device:IDirect3DDevice9, source:String, entrypoint:String, target:String)
