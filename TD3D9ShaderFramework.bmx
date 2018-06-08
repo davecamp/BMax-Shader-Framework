@@ -6,15 +6,15 @@ Import BRL.D3D9Max2D
 Import BRL.Map
 Import PUB.Win32
 Import "TShaderFramework.bmx"
+Import "Max2DShaderVariables.bmx"
 
 Private
 Global Device:IDirect3DDevice9
+Const D3DXPT_BOOL:Int = 1, D3DXPT_INT:Int = 2, D3DXPT_FLOAT:Int = 3
+Const D3DXPT_TEXTURE2D:Int = 7,  D3DXPT_SAMPLER2D:Int = 12
 Public
 
 Type TD3D9ShaderReflector
-	Const D3DXPT_BOOL:Int = 1, D3DXPT_INT:Int = 2, D3DXPT_FLOAT:Int = 3
-	Const D3DXPT_TEXTURE2D:Int = 7,  D3DXPT_SAMPLER2D:Int = 12
-	
 	Field _UniformsAuto:TMap = New TMap
 	Field _UniformsUser:TMap = New TMap
 
@@ -38,11 +38,15 @@ Type TD3D9ShaderReflector
 			
 			Select desc.Tipe
 			Case D3DXPT_BOOL, D3DXPT_INT, D3DXPT_FLOAT
-				If name = "BMaxProjectionMatrix"
-					_UniformsAuto.Insert(name, New TD3D9ShaderUniform.Create(name, desc.RegisterIndex, desc.RegisterCount, desc.Bytes, ShaderType))
-				Else
-					_UniformsUser.Insert(name, New TD3D9ShaderUniform.Create(name, desc.RegisterIndex, desc.RegisterCount, desc.Bytes, ShaderType))
-				EndIf
+				Local inAutos:Int = False
+				For Local Max2DVariable:String = EachIn Max2DShaderVariables
+					If name = Max2DVariable
+						_UniformsAuto.Insert(name, New TD3D9ShaderUniform.Create(name, desc.RegisterIndex, desc.RegisterCount, desc.Bytes, desc.Tipe, ShaderType))
+						inAutos = True
+						Exit
+					EndIf
+				Next
+				If Not inAutos _UniformsUser.Insert(name, New TD3D9ShaderUniform.Create(name, desc.RegisterIndex, desc.RegisterCount, desc.Bytes, desc.Tipe, ShaderType))
 
 			Case D3DXPT_SAMPLER2D
 				_UniformsUser.Insert(name, New TD3D9ShaderSampler.Create(name, desc.RegisterIndex))
@@ -56,6 +60,7 @@ Type TD3D9ShaderReflector
 EndType
 
 Type TD3D9ShaderProgram Extends TShaderProgram
+	Field _Max2DDefaultsNeedUpdating:Int = True
 	Field _VShader:IDirect3DVertexShader9
 	Field _PShader:IDirect3DPixelShader9
 	Field _UniformsAuto:TMap = New TMap
@@ -75,6 +80,7 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 		Device.SetVertexShader(_VShader)
 		Device.SetPixelShader(_PShader)
 
+		If _Max2DDefaultsNeedUpdating UpdateAutoUniforms()
 		SetAutoUniforms()
 		SetUserUniforms()
 	EndMethod
@@ -83,19 +89,6 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 		For Local node:TNode = EachIn _UniformsAuto
 			Local constant:TD3D9ShaderUniform = TD3d9ShaderUniform(node._Value)
 			If constant
-				' add more of these as required...
-				Select constant._Name
-				'Case "BMaxModelViewMatrix"
-				'	Local modelview:Float[16]
-				'	glGetFloatv(GL_MODELVIEW_MATRIX, modelview)
-				'	constant.SetMatrix4x4(modelview, False)
-					
-				Case "BMaxProjectionMatrix"
-					Local projection:Float[16]
-					Device.GetTransform(D3DTS_PROJECTION, projection)
-					constant.SetMatrix4x4(projection, False)
-				EndSelect
-				
 				constant.Set()
 				Continue
 			EndIf
@@ -117,6 +110,15 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 	EndMethod
 	
 	Method Unset()
+		For Local node:TNode = EachIn _UniformsAuto
+			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
+			If constant
+				constant.Unset()
+				Continue
+			EndIf
+			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._Value)
+			If sampler sampler.Unset()
+		Next
 		For Local node:TNode = EachIn _UniformsUser
 			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
@@ -177,6 +179,28 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 	EndMethod
 	
 	Method ResetMax2DDefaults()
+		_Max2DDefaultsNeedUpdating = True
+	EndMethod
+	
+	Method UpdateAutoUniforms()
+		For Local node:TNode = EachIn _UniformsAuto
+			Local constant:TD3D9ShaderUniform = TD3d9ShaderUniform(node._Value)
+			If constant
+				' add more of these as required...
+				Select constant._Name
+				Case "BMaxProjectionMatrix"
+					Local projection:Float[16]
+					Device.GetTransform(D3DTS_PROJECTION, projection)
+					constant.SetMatrix4x4(projection, False)
+					
+				'Case "BMaxTargetWidth"
+				'Case "BMaxTargetHeight"
+				'	DebugStop
+				EndSelect
+				Continue
+			EndIf
+		Next
+		_Max2DDefaultsNeedUpdating = False
 	EndMethod
 EndType
 
@@ -242,8 +266,9 @@ Type TD3D9ShaderUniformBase Extends TShaderUniform
 EndType
 
 Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
-	Method Create:TD3D9ShaderUniform(Name:String, Register:Int, Count:Int, SizeBytes:Int, ShaderType:Int)
+	Method Create:TD3D9ShaderUniform(Name:String, Register:Int, Count:Int, SizeBytes:Int, Tipe:Int, ShaderType:Int)
 		_Name = Name
+		_Type = Tipe
 		_Register = Register
 		_Count = Count
 		_SizeBytes = SizeBytes
@@ -341,7 +366,7 @@ Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 	EndMethod
 	
 	Method Set()
-		Upload();
+		Upload()
 		_IsRendering = True
 	EndMethod
 	
@@ -351,9 +376,17 @@ Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 	
 	Method Upload()
 		If _ShaderType = 0
-			Device.SetVertexShaderConstantF(_Register, Float Ptr(_Data), _Count)
+			Select _Type
+			Case D3DXPT_BOOL  Device.SetVertexShaderConstantB(_Register, Int Ptr(_Data), _Count)
+			Case D3DXPT_INT   Device.SetVertexShaderConstantI(_Register, Int Ptr(_Data), _Count)
+			Case D3DXPT_FLOAT Device.SetVertexShaderConstantF(_Register, Float Ptr(_Data), _Count)
+			EndSelect
 		Else
-			Device.SetPixelShaderConstantF(_Register, Float Ptr(_Data), _Count)
+			Select _Type
+			Case D3DXPT_BOOL  Device.SetPixelShaderConstantB(_Register, Int Ptr(_Data), _Count)
+			Case D3DXPT_INT   Device.SetPixelShaderConstantI(_Register, Int Ptr(_Data), _Count)
+			Case D3DXPT_FLOAT Device.SetPixelShaderConstantF(_Register, Float Ptr(_Data), _Count)
+			EndSelect
 		EndIf
 	EndMethod
 
@@ -560,10 +593,22 @@ Global D3DCompilerDll:Int = LoadLibraryA("d3dcompiler_47.dll")
 If Not D3DCompilerDll D3DCompilerDll = LoadLibraryA("d3dcompiler_43.dll")
 
 Global D3DX9Dll:Int = LoadLibraryA("d3dx9_43.dll")
-?
 
-If Not D3DX9Dll Return 0
-If Not D3DCompilerDll Return 0
+If Not D3DX9Dll
+?bmxng
+Return 0
+?Not bmxng
+Return
+?
+EndIf
+
+If Not D3DCompilerDll
+?bmxng
+Return 0
+?Not bmxng
+Return
+?
+EndIf
 
 Global D3DCreateBlob:Int(Size:Int ,ppBlob:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCreateBlob")
 Global D3DCompile:Int(pSrcData:Byte Ptr, SrcDataSize:Int, pSourceName:Byte Ptr,pDefines:Byte Ptr,pInclude:Byte Ptr,pEntryPoint:Byte Ptr,pTarget:Byte Ptr,Flags1:Int,Flags2:Int,ppCode:ID3DBlob Var,ppErrorMsgs:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCompile")
@@ -595,7 +640,7 @@ Function CompileShader:ID3DBlob(device:IDirect3DDevice9, source:String, entrypoi
 	
 	Return pByteCode
 EndFunction
-'Public
+
 
 
 

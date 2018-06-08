@@ -7,6 +7,7 @@ Import BRL.Map
 Import PUB.Glew
 
 Import "TShaderFramework.bmx"
+Import "Max2DShaderVariables.bmx"
 
 Private
 Global GlewIsInit:Int
@@ -81,22 +82,11 @@ Type TGLShaderProgram Extends TShaderProgram
 		If Not _Max2DDefaultsNeedUpdating Return
 		_Max2DDefaultsNeedUpdating  = False
 
+		UpdateAutoUniforms()
+
 		For Local node:TNode = EachIn _UniformsAuto
 			Local constant:TGLShaderUniform = TGLShaderUniform(node._Value)
-			If constant
-				' add more of these as required...
-				Select constant._Name
-				Case "BMaxModelViewMatrix"
-					Local modelview:Float[16]
-					glGetFloatv(GL_MODELVIEW_MATRIX, modelview)
-					constant.SetMatrix4x4(modelview, False)
-					
-				Case "BMaxProjectionMatrix"
-					Local projection:Float[16]
-					glGetFloatv(GL_PROJECTION_MATRIX, projection)
-					constant.SetMatrix4x4(projection, False)
-				EndSelect
-				
+			If constant				
 				constant.Set()
 				Continue
 			EndIf
@@ -116,7 +106,6 @@ Type TGLShaderProgram Extends TShaderProgram
 			If sampler sampler.Set()
 		Next		
 	EndMethod
-
 	
 	Method Unset()
 		For Local node:TNode = EachIn _UniformsUser
@@ -162,12 +151,15 @@ Type TGLShaderProgram Extends TShaderProgram
 		For Local i:Int = 0 Until uniformCount
 			glGetActiveUniform(_Id, i, SizeOf(cname), Varptr length, Varptr count, Varptr tipe, cname)
 			Local name:String = String.FromCString(cname)
-
-			If name = "BMaxModelViewMatrix" Or name = "BMaxProjectionMatrix"
-				CreateUniform(i, name, count, tipe, _UniformsAuto)
-			Else
-				CreateUniform(i, name, count, tipe, _UniformsUser)
-			EndIf
+			
+			Local isInAutos:Int = False
+			For Local autoName:String = EachIn Max2DShaderVariables
+				If name = autoName
+					CreateUniform(i, name, count, tipe, _UniformsAuto)
+					isInAutos = True
+				EndIf
+			Next
+			If Not isInAutos CreateUniform(i, name, count, tipe, _UniformsUser)
 		Next
 	EndMethod
 	
@@ -184,6 +176,24 @@ Type TGLShaderProgram Extends TShaderProgram
 		
 		Default DebugLog("Unsupported shader primitive type for Max2D")
 		EndSelect
+	EndMethod
+	
+	Method UpdateAutoUniforms()
+		For Local node:TNode = EachIn _UniformsAuto
+			Local constant:TGLShaderUniform = TGLShaderUniform(node._Value)
+			If constant
+				Select constant._Name
+				Case BMAX_PROJECTION_MATRIX
+					Local projection:Float[16]
+					glGetFloatv(GL_PROJECTION_MATRIX, projection)
+					constant.SetMatrix4x4(projection, False)
+				EndSelect
+
+				Continue
+			EndIf
+			Local sampler:TGLShaderSampler = TGLShaderSampler(node._Value)
+			If sampler sampler.Set()
+		Next
 	EndMethod
 EndType
 

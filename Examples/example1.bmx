@@ -39,7 +39,7 @@ Local image:TImage = LoadImage("BlitzMaxLogo.png")
 
 ' set the uniform datas
 rt_size.SetFloat2(ImageWidth(image), ImageHeight(image))
-radius.SetFloat(80.0)
+radius.SetFloat(ImageWidth(image)/2)
 centre.SetFloat2(ImageWidth(image)/2, ImageHeight(image)/2)
 
 
@@ -88,7 +88,7 @@ EndFunction
 
 ' some basic glsl fragment shader source
 Function GLSLPixelShaderSource:String()
-	 ' for an explanation of the effect go to 'http://adrianboeing.blogspot.com/2011/01/twist-effect-in-webgl.html'
+	' for an explanation of the effect go to 'http://adrianboeing.blogspot.com/2011/01/twist-effect-in-webgl.html'
 	Local source:String
 	source :+ "#version 120~n"
 	source :+ "uniform vec2 rt_size;~n"
@@ -134,8 +134,8 @@ Function HLSLVertexShaderSource:String()
 	source :+ "    float2 uv : TEXCOORD0;~n"
 	source :+ "};~n"
 
-	source :+ "float4x4 BMaxProjectionMatrix;~n" ' uniforms/constants beginning with BMax* will be automatically
-		
+	source :+ "float4x4 BMaxProjectionMatrix;~n" ' uniforms/constants beginning with BMax* will be automatically set
+
 	source :+ "VS_OUT VSMain(VS_IN vsIn) {~n"
 	source :+ "   VS_OUT vsOut;~n"
 	source :+ "   vsOut.pos = mul(BMaxProjectionMatrix, float4(vsIn.pos, 1.0f));~n"
