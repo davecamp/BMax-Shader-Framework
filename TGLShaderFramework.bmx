@@ -463,7 +463,7 @@ Type TGLShaderSampler Extends TShaderSampler
 		Return Self
 	EndMethod
 	
-	Method SetIndex(Index:Int)
+	Method SetIndex(Index:Int, Image:Object)
 		If _IsRendering
 			glUniform1i(_Location, Index)
 		Else

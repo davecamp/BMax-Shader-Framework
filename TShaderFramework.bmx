@@ -27,7 +27,7 @@ Type TShaderUniform Abstract
 EndType
 
 Type TShaderSampler Abstract
-	Method SetIndex(Index:Int) Abstract
+	Method SetIndex(Index:Int, Image:Object) Abstract
 EndType
 
 Type TShaderTexture Abstract

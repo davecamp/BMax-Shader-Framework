@@ -35,7 +35,7 @@ Type TD3D9ShaderReflector
 			Local size:Int = SizeOf(desc)
 			If pTable.GetConstantDesc(bp, desc, Varptr size) < 0 Continue
 			Local name:String = String.FromCString(desc.Name)
-			
+
 			Select desc.Tipe
 			Case D3DXPT_BOOL, D3DXPT_INT, D3DXPT_FLOAT
 				Local inAutos:Int = False
@@ -397,6 +397,7 @@ Type TD3D9ShaderSampler Extends TShaderSampler
 	Field _Register:Int
 	Field _Index:Int
 	Field _IsRendering:Int
+	Field _Image:TImage
 
 	Method Create:TD3D9ShaderSampler(Name:String, Register:Int)
 		_Name = name
@@ -404,24 +405,28 @@ Type TD3D9ShaderSampler Extends TShaderSampler
 		Return Self
 	EndMethod
 	
-	Method SetIndex(Index:Int)
+	Method SetIndex(Index:Int, Image:Object)
+		Local Max2DImage:TImage = TImage(Image)
+		If Not Max2DImage Return
+		Local frame:TD3D9ImageFrame = TD3D9ImageFrame(Max2DImage.frames[0])
+		If Not frame Return
+		
+		_Image = Max2DImage
 		_Index = Index
 		If _IsRendering Upload()
 	EndMethod
 	
 	Method Set()
-		'If _RequiresUpload
-		'	glUniform1i(_Location, _Data; _RequiresUpload = False
-		'EndIf
-		'_IsRendering = True
+		Upload()
+		_IsRendering = True
 	EndMethod
 	
 	Method Unset()
-		'_IsRendering = False
+		_IsRendering = False
 	EndMethod
 
 	Method Upload()
-		'Device.SetSamplerState(_Register, 
+		Device.SetTexture(_Register, TD3D9ImageFrame(_Image.frames[0])._texture) 
 	EndMethod
 EndType
 
