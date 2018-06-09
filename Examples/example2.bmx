@@ -4,9 +4,9 @@
 Strict
 
 Import srs.shaderframework
-SetGraphicsDriver GLMax2DDriver()
+'SetGraphicsDriver GLMax2DDriver()
 ?Win32
-'SetGraphicsDriver D3D9Max2DDriver()
+SetGraphicsDriver D3D9Max2DDriver()
 ?
 Local g:TGraphics = Graphics(800, 600)
 Local max2dg:TMax2DGraphics = TMax2DGraphics(g)
@@ -60,10 +60,10 @@ myShader.GetShaderSampler("textureDiff").SetIndex(0, image)
 myShader.GetShaderSampler("textureNorm").SetIndex(1, normal)
 
 Resolution.SetFloat2(GraphicsWidth(), GraphicsHeight())
-FallOff.SetFloat3(0.4, 3.0, 20.0)
+FallOff.SetFloat3(0.4, 3.0, 10.0)
 AmbientColor.SetFloat4(0.6, 0.6, 1.0, 0.2)
 LightColor.SetFloat4(1.0, 0.8, 0.6, 1.0)
-Local LightPosZ:Float = 0.075
+Local LightPosZ:Float = 0.05
 
 While Not KeyDown(KEY_ESCAPE)
 	Cls
@@ -71,6 +71,9 @@ While Not KeyDown(KEY_ESCAPE)
 		
 	' activate shader
 	sf.SetShader(myShader)
+	
+	If KeyDown(KEY_A) And LightPosZ > 0.01 LightPosZ :- 0.0025
+	If KeyDown(KEY_Z) And LightPosZ < 4.0 LightPosZ :+ 0.0025
 	
 	' position the 'light' at the normalized mouse position
 	Local LightPosX:Float = Float(MouseX()) / GraphicsWidth()
