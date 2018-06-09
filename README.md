@@ -1,7 +1,7 @@
-# NOTE this is an active WIP
 
 # BMax-Shader-Framework
 Blitzmax shader framework
+This project is an active 'work in progress'
 
 This module should be placed into a 'BLITZMAX_INSTALL/mod/srs.mod/shaderframework.mod/' folder.
 
