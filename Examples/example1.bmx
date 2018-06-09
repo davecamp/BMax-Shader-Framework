@@ -36,7 +36,6 @@ Local angle:TShaderUniform = myShader.getShaderUniform("angle")
 Local centre:TShaderUniform = myShader.getShaderUniform("centre")
 
 Local image:TImage = LoadImage("BlitzMaxLogo.png")
-Local normal:TImage = LoadImage("BlitzMaxLogNormal.png")
 
 ' set the uniform datas
 rt_size.SetFloat2(ImageWidth(image), ImageHeight(image))
@@ -180,7 +179,6 @@ Function HLSLPixelShaderSource:String()
 	source :+ "}~n"
 	Return source
 EndFunction
-
 
 
 
