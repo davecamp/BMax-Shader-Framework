@@ -23,7 +23,9 @@ Example2. shows a technique of using a regular diffuse texture and normal map te
 # Reserved variable names
 I'm looking into using some reserved words for some shader variables to make interaction with Max2D easier. The idea is that you don't have to worry about them yourself and they will be set automatically when the shader is 'Set' to be used. As the project evolves there may be more of these that get included. Currently there is just one.
 
-BMaxProjectionMatrix
-    This shader uniform/constant will be automatically set to the current projection matrix that's being used in Max2D.
+BMAX_PROJECTION_MATRIX
+
+This shader uniform/constant will be automatically set to the current projection matrix that's being used in Max2D.
+
 
 When using a shader that has a 'reservered name' as above: If you change resolution, change virtual resolution then use the TShaderFramework member method 'ResetMax2DDefaults()' in order to tell the framework that it will need to update the reserved word values.

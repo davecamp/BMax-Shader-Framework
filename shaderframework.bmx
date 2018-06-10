@@ -1,10 +1,10 @@
 
-Strict
+SuperStrict
 
-Module SRS.ShaderFramework
-Import "TGLShaderFramework.bmx"
+Module srs.shaderframework
+Import "tglshaderframework.bmx"
 ?win32
-Import "TD3D9ShaderFramework.bmx"
+Import "td3d9shaderframework.bmx"
 'Import "TD3D11ShaderFramework.bmx"
 ?
 

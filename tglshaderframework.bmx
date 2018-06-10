@@ -1,13 +1,13 @@
 
 SuperStrict
 
-Import BRL.GLMax2D
-Import BRL.Retro
-Import BRL.Map
-Import PUB.Glew
+Import brl.glmax2d
+Import brl.retro
+Import brl.map
+Import pub.glew
 
-Import "TShaderFramework.bmx"
-Import "Max2DShaderVariables.bmx"
+Import "tshaderframework.bmx"
+Import "max2dshadervariables.bmx"
 
 Private
 Global GlewIsInit:Int

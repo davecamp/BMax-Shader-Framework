@@ -2,11 +2,11 @@
 SuperStrict
 Import "-lOle32"
 
-Import BRL.D3D9Max2D
-Import BRL.Map
-Import PUB.Win32
-Import "TShaderFramework.bmx"
-Import "Max2DShaderVariables.bmx"
+Import brl.d3d9max2d
+Import brl.map
+Import pub.win32
+Import "tshaderframework.bmx"
+Import "max2dshadervariables.bmx"
 
 Private
 Global Device:IDirect3DDevice9
@@ -188,7 +188,7 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 			If constant
 				' add more of these as required...
 				Select constant._Name
-				Case "BMaxProjectionMatrix"
+				Case BMAX_PROJECTION_MATRIX
 					Local projection:Float[16]
 					Device.GetTransform(D3DTS_PROJECTION, projection)
 					constant.SetMatrix4x4(projection, False)
@@ -426,6 +426,7 @@ Type TD3D9ShaderSampler Extends TShaderSampler
 	EndMethod
 
 	Method Upload()
+		If Not _Image Return
 		Device.SetTexture(_Register, TD3D9ImageFrame(_Image.frames[0])._texture) 
 	EndMethod
 EndType

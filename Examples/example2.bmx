@@ -184,11 +184,11 @@ Function HLSLVertexShaderSource:String()
 	source :+ "    float2 uv : TEXCOORD0;~n"
 	source :+ "};~n"
 
-	source :+ "float4x4 BMaxProjectionMatrix;~n"
+	source :+ "float4x4 BMAX_PROJECTION_MATRIX;~n"
 
 	source :+ "VS_OUT VSMain(VS_IN vsIn) {~n"
 	source :+ "   VS_OUT vsOut;~n"
-	source :+ "   vsOut.pos = mul(BMaxProjectionMatrix, float4(vsIn.pos, 1.0f));~n"
+	source :+ "   vsOut.pos = mul(BMAX_PROJECTION_MATRIX, float4(vsIn.pos, 1.0f));~n"
 	source :+ "   vsOut.col = vsIn.col;~n"
 	source :+ "   vsOut.uv = vsIn.uv;~n"
 	source :+ "   return vsOut;~n"

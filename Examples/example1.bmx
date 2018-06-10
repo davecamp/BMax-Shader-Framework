@@ -2,9 +2,9 @@
 Strict
 
 Import srs.shaderframework
-SetGraphicsDriver GLMax2DDriver()
+'SetGraphicsDriver GLMax2DDriver()
 ?Win32
-'SetGraphicsDriver D3D9Max2DDriver()
+SetGraphicsDriver D3D9Max2DDriver()
 ?
 Local g:TGraphics = Graphics(800,600)
 Local max2dg:TMax2DGraphics = TMax2DGraphics(g)
@@ -134,11 +134,11 @@ Function HLSLVertexShaderSource:String()
 	source :+ "    float2 uv : TEXCOORD0;~n"
 	source :+ "};~n"
 
-	source :+ "float4x4 BMaxProjectionMatrix;~n" ' uniforms/constants beginning with BMax* will be automatically set
+	source :+ "float4x4 BMAX_PROJECTION_MATRIX;~n" ' uniforms/constants beginning with BMAX_* will be automatically set
 
 	source :+ "VS_OUT VSMain(VS_IN vsIn) {~n"
 	source :+ "   VS_OUT vsOut;~n"
-	source :+ "   vsOut.pos = mul(BMaxProjectionMatrix, float4(vsIn.pos, 1.0f));~n"
+	source :+ "   vsOut.pos = mul(BMAX_PROJECTION_MATRIX, float4(vsIn.pos, 1.0f));~n"
 	source :+ "   vsOut.col = vsIn.col;~n"
 	source :+ "   vsOut.uv = vsIn.uv;~n"
 	source :+ "   return vsOut;~n"
