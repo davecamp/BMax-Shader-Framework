@@ -50,7 +50,7 @@ Type TGLShaderProgram Extends TShaderProgram
 		Local status:Int, infoLength:Int
 		glGetProgramiv(_id, GL_LINK_STATUS, Varptr status)
 		glGetProgramiv(_Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
-			
+		
 		If infoLength > 0
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
 				
@@ -59,10 +59,9 @@ Type TGLShaderProgram Extends TShaderProgram
 				
 			Print String.FromCString(pInfo)
 			MemFree(pInfo)
-			Return False
 		EndIf
-		
-		If status = 0 Return False
+		If status = False Return False
+
 		_VShader = VertexShader
 		_PShader = PixelShader
 		Return True
@@ -200,6 +199,10 @@ EndType
 Type TGLVertexShader Extends TVertexShader
 	Field _Id:Int
 	
+	Method Delete()
+		If _Id glDeleteShader(_Id)
+	EndMethod
+	
 	Method Compile:Int(Source:String)
 		Local Id:Int = glCreateShader(GL_VERTEX_SHADER_ARB)
 		If Id = 0 Return False
@@ -213,7 +216,7 @@ Type TGLVertexShader Extends TVertexShader
 		glCompileShader(Id)
 		glGetShaderiv(Id, GL_COMPILE_STATUS, Varptr status)
 		glGetShaderiv(Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
-			
+		
 		If infoLength > 0
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
 				
@@ -222,10 +225,9 @@ Type TGLVertexShader Extends TVertexShader
 				
 			Print String.FromCString(pInfo)
 			MemFree(pInfo)
-			Return False
 		EndIf
+		If status = False Return False
 
-		If status = 0 Return False
 		_Id = Id
 		Return True
 	EndMethod
@@ -251,7 +253,7 @@ Type TGLPixelShader Extends TPixelShader
 		glCompileShader(Id)
 		glGetShaderiv(Id, GL_COMPILE_STATUS, Varptr status)
 		glGetShaderiv(Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
-			
+		
 		If infoLength > 0
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
 				
@@ -260,10 +262,9 @@ Type TGLPixelShader Extends TPixelShader
 				
 			Print String.FromCString(pInfo)
 			MemFree(pInfo)
-			Return False
 		EndIf
+		If status = False Return False
 
-		If status = 0 Return False
 		_Id = Id
 		Return True
 	EndMethod
