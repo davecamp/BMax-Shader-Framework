@@ -51,7 +51,7 @@ Type TGLShaderProgram Extends TShaderProgram
 		glGetProgramiv(_id, GL_LINK_STATUS, Varptr status)
 		glGetProgramiv(_Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
 		
-		If infoLength > 0
+		If infoLength > 1
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
 				
 			Local returnedLength:Int
@@ -217,7 +217,7 @@ Type TGLVertexShader Extends TVertexShader
 		glGetShaderiv(Id, GL_COMPILE_STATUS, Varptr status)
 		glGetShaderiv(Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
 		
-		If infoLength > 0
+		If infoLength > 1
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
 				
 			Local returnedLength:Int
@@ -254,7 +254,7 @@ Type TGLPixelShader Extends TPixelShader
 		glGetShaderiv(Id, GL_COMPILE_STATUS, Varptr status)
 		glGetShaderiv(Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
 		
-		If infoLength > 0
+		If infoLength > 1
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
 				
 			Local returnedLength:Int
