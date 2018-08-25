@@ -19,6 +19,8 @@ Example1. shows a swirl effect using a default vertex shader that can be applied
     
 Example2. shows a technique of using a regular diffuse texture and normal map texture to create a more advanced 3D lighting effect but in 2D. Move the mouse to move the light. There are several parameters that can be changed such as color and attenuation, distance of the light to the 'surface' plus a couple more.
 
+Example3. shows how to do simple multi-texturing in the pixel shader using just 2 textures.
+
 
 # Reserved variable names
 I'm looking into using some reserved words for some shader variables to make interaction with Max2D easier. The idea is that you don't have to worry about them yourself and they will be set automatically when the shader is 'Set' to be used. As the project evolves there may be more of these that get included. Currently there is just one.
