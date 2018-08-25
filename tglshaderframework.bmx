@@ -453,10 +453,11 @@ EndType
 
 Type TGLShaderSampler Extends TShaderSampler
 	Field _Name:String
-	Field _Data:Int
+	Field _Index:Int
 	Field _Location:Int
 	Field _RequiresUpload:Int
 	Field _IsRendering:Int
+	Field _Image:TImage
 
 	Method Create:TGLShaderSampler(Owner:TGLShaderProgram, Location:Int, Name:String, Tipe:Int)
 		_Name = Name
@@ -465,23 +466,30 @@ Type TGLShaderSampler Extends TShaderSampler
 	EndMethod
 	
 	Method SetIndex(Index:Int, Image:Object)
-		If _IsRendering
-			glUniform1i(_Location, Index)
-		Else
-			_Data = Index
-			_RequiresUpload = True
-		EndIf
+		Local Max2DImage:TImage = TImage(Image)
+		If Not Max2DImage Return
+		Local frame:TGLImageFrame = TGLImageFrame(Max2DImage.frames[0])
+		If Not frame Return
+		
+		_Image = Max2DImage
+		_Index = Index
+		If _IsRendering Upload()
 	EndMethod
 	
 	Method Set()
-		If _RequiresUpload
-			glUniform1i(_Location, _Data); _RequiresUpload = False
-		EndIf
+		Upload()
 		_IsRendering = True
 	EndMethod
 	
 	Method Unset()
 		_IsRendering = False
+	EndMethod
+	
+	Method Upload()
+		glUniform1i(_Location, _Index)
+		glActiveTexture(GL_TEXTURE0 + _Index)
+		If(_Image) glBindTexture(GL_TEXTURE_2D, TGLImageFrame(_Image.frames[0]).name)
+		glActiveTexture(GL_TEXTURE0) ' For Max2D
 	EndMethod
 EndType
 

@@ -4,9 +4,9 @@
 Strict
 
 Import srs.shaderframework
-'SetGraphicsDriver GLMax2DDriver()
+SetGraphicsDriver GLMax2DDriver()
 ?Win32
-SetGraphicsDriver D3D9Max2DDriver()
+'SetGraphicsDriver D3D9Max2DDriver()
 ?
 Local g:TGraphics = Graphics(800, 600)
 Local max2dg:TMax2DGraphics = TMax2DGraphics(g)
@@ -80,14 +80,13 @@ While Not KeyDown(KEY_ESCAPE)
 	Local LightPosY:Float = Float(MouseY()) / GraphicsHeight()
 	LightPos.SetFloat3(LightPosX, LightPosY, LightPosZ)
 	
-	' draw the image as a regular image
+	' draw the image as a regular image - binds image to texture unit 0! be aware of this in this shader!
 	DrawImage(image, 0, 0)
 
 	sf.SetShader(Null)
 
-	' WTF is going on here with GL? TODO: calling Max2D drawimage now screws everything up :( Dx is ok.
-	'SetScale(1, 1)
-	'DrawText "Example2 - 3D Lighting in 2D", 0, 0
+	SetScale(1, 1)
+	DrawText "Example2 - 3D Lighting in 2D", 0, 0
 
 	Flip(1)
 Wend
