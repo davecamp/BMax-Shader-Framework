@@ -42,13 +42,6 @@ Local normal:TImage = LoadImage("177_norm.jpg") ' or 176_norm.jpg
 DrawImage(normal, 0, 0)
 DrawImage(image, 0, 0)
 
-' another part of the kludge - this could also be cleanly handled within a TTexture!
-' bind the normal texture to texture unit 1
-If TGLGraphics(max2dg._graphics)
-	glActiveTexture(GL_TEXTURE1)
-	glBindTexture(GL_TEXTURE_2D, TGLImageFrame(normal.frames[0]).name)
-EndIf
-
 ' get the uniforms
 Local Resolution:TShaderUniform = myShader.GetShaderUniform("Resolution")
 Local LightPos:TShaderUniform = myShader.GetShaderUniform("LightPos")
