@@ -5,6 +5,7 @@ Import "-lOle32"
 Import brl.d3d9max2d
 Import brl.map
 Import pub.win32
+Import "d3dcompiler.bmx"
 Import "tshaderframework.bmx"
 Import "max2dshadervariables.bmx"
 
@@ -12,7 +13,6 @@ Private
 Global Device:IDirect3DDevice9
 Const D3DXPT_BOOL:Int = 1, D3DXPT_INT:Int = 2, D3DXPT_FLOAT:Int = 3
 Const D3DXPT_TEXTURE2D:Int = 7,  D3DXPT_SAMPLER2D:Int = 12
-Public
 
 Type TD3D9ShaderReflector
 	Field _UniformsAuto:TMap = New TMap
@@ -59,6 +59,8 @@ Type TD3D9ShaderReflector
 	EndMethod
 EndType
 
+Public
+
 Type TD3D9ShaderProgram Extends TShaderProgram
 	Field _Max2DDefaultsNeedUpdating:Int = True
 	Field _VShader:IDirect3DVertexShader9
@@ -81,23 +83,15 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 		Device.SetPixelShader(_PShader)
 
 		If _Max2DDefaultsNeedUpdating UpdateAutoUniforms()
-		SetAutoUniforms()
-		SetUserUniforms()
-	EndMethod
-
-	Method SetAutoUniforms()
 		For Local node:TNode = EachIn _UniformsAuto
-			Local constant:TD3D9ShaderUniform = TD3d9ShaderUniform(node._Value)
+			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
 				constant.Set()
 				Continue
 			EndIf
 			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._Value)
 			If sampler sampler.Set()
-		Next		
-	EndMethod
-
-	Method SetUserUniforms()
+		Next
 		For Local node:TNode = EachIn _UniformsUser
 			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
@@ -106,7 +100,7 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 			EndIf
 			Local sampler:TD3D9ShaderSampler = TD3D9ShaderSampler(node._Value)
 			If sampler sampler.Set()
-		Next		
+		Next	
 	EndMethod
 	
 	Method Unset()
@@ -184,7 +178,7 @@ Type TD3D9ShaderProgram Extends TShaderProgram
 	
 	Method UpdateAutoUniforms()
 		For Local node:TNode = EachIn _UniformsAuto
-			Local constant:TD3D9ShaderUniform = TD3d9ShaderUniform(node._Value)
+			Local constant:TD3D9ShaderUniform = TD3D9ShaderUniform(node._Value)
 			If constant
 				' add more of these as required...
 				Select constant._Name
@@ -254,7 +248,7 @@ Type TD3D9PixelShader Extends TPixelShader
 	EndMethod
 EndType
 
-Type TD3D9ShaderUniformBase Extends TShaderUniform
+Type TD3D9ShaderUniform Extends TShaderUniform
 	Field _Name:String
 	Field _Register:Int
 	Field _Count:Int
@@ -263,9 +257,7 @@ Type TD3D9ShaderUniformBase Extends TShaderUniform
 	Field _Type:Int
 	Field _IsRendering:Int
 	Field _ShaderType:Int
-EndType
 
-Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 	Method Create:TD3D9ShaderUniform(Name:String, Register:Int, Count:Int, SizeBytes:Int, Tipe:Int, ShaderType:Int)
 		_Name = Name
 		_Type = Tipe
@@ -389,7 +381,6 @@ Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 			EndSelect
 		EndIf
 	EndMethod
-
 EndType
 
 Type TD3D9ShaderSampler Extends TShaderSampler
@@ -560,10 +551,6 @@ Global D3DX9Dll:Byte Ptr = LoadLibraryA("d3dx9_43.dll")
 
 ?Not BmxNG
 Extern "Win32"
-Type ID3DBlob Extends IUnknown
-	Method GetBufferPointer:Byte Ptr()
-	Method GetBufferSize()
-EndType
 
 Type ID3DXConstantTable Extends IUnknown
 	Method GetBufferPointer:Byte Ptr()
@@ -595,12 +582,12 @@ Type ID3DXConstantTable Extends IUnknown
 	Method SetMatrixTransposePointerArray:Int(pDevice:IDirect3DDevice9, hConsant:Byte Ptr, ppMatrix:Byte Ptr, Count:Int)
 EndType
 EndExtern
-Global D3DCompilerDll:Int = LoadLibraryA("d3dcompiler_47.dll")
-If Not D3DCompilerDll D3DCompilerDll = LoadLibraryA("d3dcompiler_43.dll")
 
 Global D3DX9Dll:Int = LoadLibraryA("d3dx9_43.dll")
 
 If Not D3DX9Dll
+Notify("Could not find d3dx9_43.dll")
+
 ?bmxng
 Return 0
 ?Not bmxng
@@ -608,44 +595,8 @@ Return
 ?
 EndIf
 
-If Not D3DCompilerDll
-?bmxng
-Return 0
-?Not bmxng
-Return
-?
-EndIf
-
-Global D3DCreateBlob:Int(Size:Int ,ppBlob:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCreateBlob")
-Global D3DCompile:Int(pSrcData:Byte Ptr, SrcDataSize:Int, pSourceName:Byte Ptr,pDefines:Byte Ptr,pInclude:Byte Ptr,pEntryPoint:Byte Ptr,pTarget:Byte Ptr,Flags1:Int,Flags2:Int,ppCode:ID3DBlob Var,ppErrorMsgs:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCompile")
 Global D3DXGetShaderConstantTable:Int(pFunction:Byte Ptr, ppConstantTable:ID3DXConstantTable Var)"Win32" = GetProcAddress(D3DX9Dll, "D3DXGetShaderConstantTable")
 
-Function CompileShader:ID3DBlob(device:IDirect3DDevice9, source:String, entrypoint:String, target:String)
-	Const D3DCOMPILE_DEBUG:Int = 1
-	Const D3DCOMPILE_OPTIMIZATION_LEVEL3:Int = 1 Shl 15
-	
-	Local pByteCode:ID3DBlob
-	Local pErrors:ID3DBlob
-
-	Local compileFlags:Int = D3DCOMPILE_OPTIMIZATION_LEVEL3
-?Debug
-    compileFlags = D3DCOMPILE_DEBUG
-?
-
-	If Not D3DCompile
-		DebugLog("D3DCompile function pointer is invalid - maybe update DirectX?")
-		Return Null
-	EndIf
-
-	D3DCompile(source, source.Length, "", Null, Null, entrypoint, target, compileFlags, 0, pByteCode, pErrors)
-	If pErrors
-		DebugLog(String.FromCString(pErrors.GetBufferPointer()))
-		pErrors.Release_()
-		Return Null	
-	EndIf
-	
-	Return pByteCode
-EndFunction
 
 
 

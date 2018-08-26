@@ -1,11 +1,14 @@
 
 Strict
 
+Import srs.d3d11max2d
 Import srs.shaderframework
 'SetGraphicsDriver GLMax2DDriver()
 ?Win32
-SetGraphicsDriver D3D9Max2DDriver()
+'SetGraphicsDriver D3D9Max2DDriver()
+SetGraphicsDriver D3D11Max2DDriver()
 ?
+
 Local g:TGraphics = Graphics(800,600)
 Local max2dg:TMax2DGraphics = TMax2DGraphics(g)
 
@@ -17,19 +20,22 @@ If TGLGraphics(max2dg._graphics)
 	psource = GLSLPixelShaderSource()
 EndIf
 ?Win32
-If TD3D9Graphics(max2dg._graphics) ' Or TD3D11Graphics(max2dg._graphics)
-	vsource = HLSLVertexShaderSource()
-	psource = HLSLPixelShaderSource()
+If TD3D9Graphics(max2dg._graphics)
+	vsource = HLSL9VertexShaderSource()
+	psource = HLSL9PixelShaderSource()
+EndIf
+If TD3D11Graphics(max2dg._graphics)
+	vsource = HLSL11VertexShaderSource()
+	psource = HLSL11PixelShaderSource()
 EndIf
 ?
-
 
 ' Create an instance of the shader framework with the max2d graphics context
 Local sf:TShaderFramework = CreateShaderFramework(g)
 Local vertexshader:TVertexShader = sf.CreateVertexShader(vsource)
 Local pixelshader:TPixelShader = sf.CreatePixelShader(psource)
 Local myShader:TShaderProgram = sf.CreateShaderProgram(vertexshader, pixelshader)
-
+DebugStop
 Local rt_size:TShaderUniform = myShader.getShaderUniform("rt_size")
 Local radius:TShaderUniform = myShader.getShaderUniform("radius")
 Local angle:TShaderUniform = myShader.getShaderUniform("angle")
@@ -38,9 +44,9 @@ Local centre:TShaderUniform = myShader.getShaderUniform("centre")
 Local image:TImage = LoadImage("BlitzMaxLogo.png")
 
 ' set the uniform datas
-rt_size.SetFloat2(ImageWidth(image), ImageHeight(image))
-radius.SetFloat(ImageWidth(image)/2)
-centre.SetFloat2(ImageWidth(image)/2, ImageHeight(image)/2)
+'rt_size.SetFloat2(ImageWidth(image), ImageHeight(image))
+'radius.SetFloat(ImageWidth(image)/2)
+'centre.SetFloat2(ImageWidth(image)/2, ImageHeight(image)/2)
 
 
 Local ang:Float
@@ -53,7 +59,7 @@ While Not KeyDown(KEY_ESCAPE)
 	' update the uniform data for a swirly effect
 	If KeyDown(KEY_LEFT) ang :+ 0.01
 	If KeyDown(KEY_RIGHT) ang :- 0.01
-	angle.SetFloat(ang)
+	'angle.SetFloat(ang)
 	
 	SetScale 2,2
 	DrawImage(image, 10, 10)
@@ -120,7 +126,7 @@ EndFunction
 
 
 
-Function HLSLVertexShaderSource:String()
+Function HLSL9VertexShaderSource:String()
 	Local source:String
 	source :+ "struct VS_IN {"
 	source :+ "   float3 pos : POSITION;~n"
@@ -146,7 +152,7 @@ Function HLSLVertexShaderSource:String()
 	Return source
 EndFunction
 
-Function HLSLPixelShaderSource:String()
+Function HLSL9PixelShaderSource:String()
 	Local source:String
 	source :+ "struct PS_IN~n"
 	source :+ "{~n"
@@ -176,6 +182,75 @@ Function HLSLPixelShaderSource:String()
 	source :+ "   float3 color = tex2D(tex, tc / rt_size).rgb;~n"
 	
 	source :+ "   return float4(color, 1.0);~n"
+	source :+ "}~n"
+	Return source
+EndFunction
+
+
+
+
+Function HLSL11VertexShaderSource:String()
+	Local source:String
+	source :+ "struct VS_IN {"
+	source :+ "   float3 pos : POSITION;~n"
+	source :+ "   float4 col : COLOR0;~n"
+	source :+ "   float2 uv : TEXCOORD0;~n"
+	source :+ "};~n"
+		
+	source :+ "struct VS_OUT {~n"
+	source :+ "    float4 pos : SV_Position;~n"
+	source :+ "    float4 col : COLOR0;~n"
+	source :+ "    float2 uv : TEXCOORD0;~n"
+	source :+ "};~n"
+
+	source :+ "cbuffer Max2D {~n"
+	source :+ "    float4x4 BMAX_PROJECTION_MATRIX;~n"
+	source :+ "};~n"
+
+	source :+ "VS_OUT VSMain(VS_IN vsIn) {~n"
+	source :+ "   VS_OUT vsOut;~n"
+	source :+ "   vsOut.pos = mul(BMAX_PROJECTION_MATRIX, float4(vsIn.pos, 1.0f));~n"
+	source :+ "   vsOut.col = vsIn.col;~n"
+	source :+ "   vsOut.uv = vsIn.uv;~n"
+	source :+ "   return vsOut;~n"
+	source :+ "}~n"
+	Return source
+EndFunction
+
+Function HLSL11PixelShaderSource:String()
+	Local source:String
+	source :+ "struct PS_IN~n"
+	source :+ "{~n"
+	source :+ "   float4 pos : SV_Position;~n"
+	source :+ "   float4 col : COLOR0;~n"
+	source :+ "   float2 uv : TEXCOORD0;~n"
+	source :+ "};~n"
+
+	source :+ "cbuffer vars {~n"
+	source :+ "    float2 rt_size;~n"
+	source :+ "    float2 centre;~n"
+	source :+ "    float radius;~n"
+	source :+ "    float angle;~n"
+	source :+ "};~n"
+	
+	source :+ "Texture2D tex;~n"
+	source :+ "SamplerState samp;~n"
+	
+	source :+ "float4 PSMain(PS_IN psIn) : SV_Target {~n"
+	source :+ "   float2 uv = psIn.uv;~n"
+	source :+ "   float2 tc = uv * rt_size;~n"
+	source :+ "   tc -= centre;~n"
+	source :+ "   float dist = length(tc);~n"
+	source :+ "   if(dist < radius) {~n"
+	source :+ "      float percent = (radius - dist) / radius;~n"
+	source :+ "      float theta = percent * percent * angle * 8.0;~n"
+	source :+ "      float s = sin(theta), c = cos(theta);~n"
+	source :+ "      tc = float2(dot(tc, float2(c, -s)), dot(tc, float2(s, c)));~n"
+	source :+ "   }~n"
+	source :+ "   tc += centre;~n"
+	source :+ "   float3 color = tex.Sample(samp, tc / rt_size).rgb;~n"
+	
+	source :+ "   return 1; // float4(color, 1.0);~n"
 	source :+ "}~n"
 	Return source
 EndFunction

@@ -5,7 +5,7 @@ Module srs.shaderframework
 Import "tglshaderframework.bmx"
 ?win32
 Import "td3d9shaderframework.bmx"
-'Import "TD3D11ShaderFramework.bmx"
+Import "td3d11shaderframework.bmx"
 ?
 
 Private
@@ -22,7 +22,7 @@ Function CreateShaderFramework:TShaderFramework(gc:TGraphics)
 
 	?win32
 	If TD3D9Graphics(max2d._graphics) Return New TD3D9ShaderFramework.Create(max2d._graphics)
-	'If TD3D11Graphics(max2d._graphics) Return New TD3D11ShaderFramework.Create(max2d._graphics)
+	If TD3D11Graphics(max2d._graphics) Return New TD3D11ShaderFramework.Create(max2d._graphics)
 	?
 	If TGLGraphics(max2d._graphics) Return New TGLShaderFramework
 	

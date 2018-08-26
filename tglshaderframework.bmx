@@ -126,7 +126,6 @@ Type TGLShaderProgram Extends TShaderProgram
 			Local sampler:TGLShaderSampler = TGLShaderSampler(node._Value)
 			If sampler sampler.Unset()
 		Next
-
 	EndMethod
 	
 	Method GetShaderUniform:TShaderUniform(Name:String)
@@ -270,18 +269,17 @@ Type TGLPixelShader Extends TPixelShader
 	EndMethod
 EndType
 
-Type TGLShaderUniformBase Extends TShaderUniform
+Type TGLShaderUniform Extends TShaderUniform
 	Field _Name:String
 	Field _Data:Byte Ptr
 	Field _SizeBytes:Int
 	Field _Type:Int
-	Field _Location:Int
-	Field _IsTranspose:Int
 	Field _RequiresUpload:Int
 	Field _IsRendering:Int
-EndType
+	
+	Field _Location:Int
+	Field _IsTranspose:Int
 
-Type TGLShaderUniform Extends TGLShaderUniformBase
 	Method Create:TGLShaderUniform(Location:Int, Name:String, SizeBytes:Int, Tipe:Int)
 		_Name = Name
 		_Data = MemAlloc(SizeBytes)
