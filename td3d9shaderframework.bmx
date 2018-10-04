@@ -272,7 +272,11 @@ Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 		_Register = Register
 		_Count = Count
 		_SizeBytes = SizeBytes
+?bmxng
+		_Data = MemAlloc(Size_T(SizeBytes))
+?Not bmxng
 		_Data = MemAlloc(SizeBytes)
+?
 		_ShaderType = ShaderType
 		Return Self
 	EndMethod
@@ -320,7 +324,7 @@ Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 ?
 		Int Ptr(_Data)[0] = Data
 	EndMethod
-	
+
 	Method SetInt2(Data1:Int, Data2:Int)
 ?debug
 		If DebugData(8) Return
@@ -352,7 +356,11 @@ Type TD3D9ShaderUniform Extends TD3D9ShaderUniformBase
 		If DebugData(SizeOf(Data)) Return
 ?
 		'_IsTranspose = IsTranspose
+?bmxng
+		MemCopy(_Data, Data, Size_T(_SizeBytes))
+?Not bmxng
 		MemCopy(_Data, Data, _SizeBytes)
+?
 		If _IsRendering Upload()
 	EndMethod
 	
@@ -600,21 +608,13 @@ If Not D3DCompilerDll D3DCompilerDll = LoadLibraryA("d3dcompiler_43.dll")
 
 Global D3DX9Dll:Int = LoadLibraryA("d3dx9_43.dll")
 
-If Not D3DX9Dll
 ?bmxng
-Return 0
-?Not bmxng
-Return
+If Not D3DX9Dll Return 0
+If Not D3DCompilerDll Return 0
+? Not bmxng
+If Not D3DX9Dll Return
+If Not D3DCompilerDll Return
 ?
-EndIf
-
-If Not D3DCompilerDll
-?bmxng
-Return 0
-?Not bmxng
-Return
-?
-EndIf
 
 Global D3DCreateBlob:Int(Size:Int ,ppBlob:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCreateBlob")
 Global D3DCompile:Int(pSrcData:Byte Ptr, SrcDataSize:Int, pSourceName:Byte Ptr,pDefines:Byte Ptr,pInclude:Byte Ptr,pEntryPoint:Byte Ptr,pTarget:Byte Ptr,Flags1:Int,Flags2:Int,ppCode:ID3DBlob Var,ppErrorMsgs:ID3DBlob Var)"win32" = GetProcAddress(D3DCompilerDll,"D3DCompile")

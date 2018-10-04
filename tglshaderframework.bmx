@@ -52,7 +52,11 @@ Type TGLShaderProgram Extends TShaderProgram
 		glGetProgramiv(_Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
 		
 		If infoLength > 1
+?bmxng
+			Local pInfo:Byte Ptr = MemAlloc(Size_T(infoLength))
+?Not bmxng
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
+?
 				
 			Local returnedLength:Int
 			glGetProgramInfoLog(_Id, infoLength, Varptr returnedLength, pInfo)
@@ -218,8 +222,11 @@ Type TGLVertexShader Extends TVertexShader
 		glGetShaderiv(Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
 		
 		If infoLength > 1
+?bmxng
+			Local pInfo:Byte Ptr = MemAlloc(Size_T(infoLength))
+?Not bmxng
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
-				
+?
 			Local returnedLength:Int
 			glGetShaderInfoLog(Id, infoLength, Varptr returnedLength, pInfo)
 				
@@ -255,8 +262,11 @@ Type TGLPixelShader Extends TPixelShader
 		glGetShaderiv(Id, GL_INFO_LOG_LENGTH, Varptr infoLength)
 		
 		If infoLength > 1
+?bmxng
+			Local pInfo:Byte Ptr = MemAlloc(Size_T(infoLength))
+?Not bmxng
 			Local pInfo:Byte Ptr = MemAlloc(infoLength)
-				
+?
 			Local returnedLength:Int
 			glGetShaderInfoLog(Id, infoLength, Varptr returnedLength, pInfo)
 				
@@ -284,7 +294,11 @@ EndType
 Type TGLShaderUniform Extends TGLShaderUniformBase
 	Method Create:TGLShaderUniform(Location:Int, Name:String, SizeBytes:Int, Tipe:Int)
 		_Name = Name
+?bmxng
+		_Data = MemAlloc(Size_T(SizeBytes))
+?Not bmxng
 		_Data = MemAlloc(SizeBytes)
+?
 		_SizeBytes = SizeBytes
 		_Type = tipe
 		_Location = Location
@@ -442,7 +456,7 @@ Type TGLShaderUniform Extends TGLShaderUniformBase
 		Case GL_FLOAT_VEC2 glUniform2fv(_Location, 1, Float Ptr(_Data))
 		Case GL_FLOAT_VEC3 glUniform3fv(_Location, 1, Float Ptr(_Data))
 		Case GL_FLOAT_VEC4 glUniform4fv(_Location, 1, Float Ptr(_Data))
-		Case GL_FLOAT_MAT4 glUniformMatrix4fv(_Location, 1, _IsTranspose, Float Ptr(_Data))
+		Case GL_FLOAT_MAT4 glUniformMatrix4fv(_Location, 1, Byte(_IsTranspose), Float Ptr(_Data))
 		Case GL_INT glUniform1iv(_Location, 1, Int Ptr(_Data))
 		Case GL_INT_VEC2 glUniform2iv(_Location, 1, Int Ptr(_Data))
 		Case GL_INT_VEC3 glUniform3iv(_Location, 1, Int Ptr(_Data))
